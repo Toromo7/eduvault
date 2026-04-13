@@ -1,6 +1,16 @@
 {
   "name": "eduvault",
   "version": "0.1.0",
+  "description": "Stellar-aligned educational content marketplace prototype for creator payments, licensing, and discovery.",
+  "license": "MIT",
+  "keywords": [
+    "stellar",
+    "soroban",
+    "education",
+    "creator-economy",
+    "marketplace",
+    "nextjs"
+  ],
   "private": true,
   "scripts": {
     "dev": "next dev",
