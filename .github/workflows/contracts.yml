@@ -1,0 +1,78 @@
+name: Contracts CI
+
+on:
+  pull_request:
+    paths:
+      - "contracts/**"
+      - "soroban/**"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/contracts.yml"
+  push:
+    branches:
+      - main
+      - develop
+    paths:
+      - "contracts/**"
+      - "soroban/**"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/contracts.yml"
+
+jobs:
+  solidity:
+    name: Solidity Prototype Checks
+    if: ${{ hashFiles('contracts/**/*.sol') != '' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Check contract formatting
+        run: npx --yes prettier@3.6.2 --check "contracts/**/*.sol"
+
+      - name: Run Solidity lint
+        run: npx --yes solhint@5.0.3 "contracts/**/*.sol"
+
+      - name: Compile Solidity contracts
+        shell: bash
+        run: |
+          shopt -s globstar nullglob
+          files=(contracts/**/*.sol)
+          if [ "${#files[@]}" -eq 0 ]; then
+            echo "No Solidity contracts found."
+            exit 0
+          fi
+          npx --yes --package solc@0.8.30 solcjs \
+            --bin \
+            --abi \
+            --base-path . \
+            --include-path node_modules \
+            "${files[@]}"
+
+      - name: Setup Foundry
+        if: ${{ hashFiles('foundry.toml') != '' }}
+        uses: foundry-rs/foundry-toolchain@v1
+
+      - name: Run Foundry tests
+        if: ${{ hashFiles('foundry.toml') != '' }}
+        run: forge test -vvv
+
+      - name: Run Hardhat tests
+        if: ${{ hashFiles('hardhat.config.js', 'hardhat.config.cjs', 'hardhat.config.ts') != '' }}
+        run: npx hardhat test
+
+      - name: Note missing Solidity test runner
+        if: ${{ hashFiles('foundry.toml', 'hardhat.config.js', 'hardhat.config.cjs', 'hardhat.config.ts') == '' }}
+        shell: bash
+        run: echo "No Solidity test runner is configured in this repository yet. Compilation, formatting, and lint checks still ran."

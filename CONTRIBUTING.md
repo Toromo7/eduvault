@@ -46,7 +46,8 @@ npm run dev
 - The change is scoped and explained clearly.
 - Relevant docs are updated.
 - New environment variables are reflected in `.env.example`.
-- Screenshots or request/response examples are included when they materially help reviewers.
+- Pull requests that change visible frontend behavior include screenshots or a short screen recording.
+- Request/response examples are included when backend or API changes materially benefit from them.
 - Any product or architectural assumptions are stated explicitly in the PR description.
 
 ## Commit Messages
