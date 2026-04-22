@@ -259,6 +259,20 @@ See [`.env.example`](.env.example) for the canonical template.
 | `NEXT_PUBLIC_SOROBAN_CONTRACT_ID` | Planned | Contract ID for entitlement and payment logic |
 | `NEXT_PUBLIC_ACCEPTED_ASSET` | Planned | Default accepted payment asset such as `XLM` or `USDC` |
 
+## Deployment Guardrails
+
+- Production builds and startups validate required environment values before the app serves traffic.
+- Placeholder secrets such as `replace-with-a-long-random-string` fail validation in production.
+- CI runs dependency audits and a secret/placeholder scan before merge.
+- Security headers are set centrally in `next.config.mjs` for all application routes.
+
+### Production vs Local Environment
+
+- Local development may leave some Soroban settings unset while the feature is still gated.
+- Production deployments must provide real `JWT_SECRET`, `MONGODB_URI`, `PINATA_JWT`, `NEXT_PUBLIC_APP_URL`, and `NEXT_PUBLIC_GATEWAY_URL` values.
+- Once Soroban features are enabled, production must also provide valid `NEXT_PUBLIC_STELLAR_RPC_URL`, `NEXT_PUBLIC_HORIZON_URL`, and `NEXT_PUBLIC_SOROBAN_CONTRACT_ID`.
+- Preview and production environments should not use placeholder values for any credential-like setting.
+
 ## Usage
 
 ### Current prototype flow

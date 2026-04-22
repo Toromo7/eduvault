@@ -20,6 +20,8 @@
     "test": "npm run test:contracts && npm run test:backend",
     "test:contracts": "hardhat test",
     "test:backend": "node --test tests/backend/*.test.mjs",
+    "audit:deps": "npm audit --audit-level=high",
+    "scan:secrets": "node scripts/scan-secrets.mjs",
     "indexer:stellar": "node scripts/run-stellar-indexer.mjs"
   },
   "dependencies": {
