@@ -5,8 +5,14 @@ import { FaCloudUploadAlt } from "react-icons/fa";
 import { useAccount, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import { abi } from "../../../../../contracts/EduVaultAbi.js";
 import { celoSepolia } from "wagmi/chains";
+import { parseAbiItem } from "viem";
 
 const contractAddress = "0x3f48520ca0d8d51345b416b5a3e083dac8790f55";
+
+// Transfer event signature for parsing
+const TRANSFER_EVENT = parseAbiItem(
+  "event Transfer(address indexed from, address indexed to, uint256 indexed tokenId)"
+);
 
 export default function UploadForm() {
   const { address } = useAccount();
@@ -15,6 +21,7 @@ export default function UploadForm() {
     isLoading: isWaiting,
     isSuccess: isConfirmed,
     isError: isFailed,
+    data: receipt,
   } = useWaitForTransactionReceipt({ hash: txHash });
 
   const [title, setTitle] = useState("");
@@ -30,7 +37,9 @@ export default function UploadForm() {
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
+  const [errorType, setErrorType] = useState(null); // 'upload' | 'wallet' | 'chain' | 'receipt'
   const [success, setSuccess] = useState(null);
+  const [mintResult, setMintResult] = useState(null); // { tokenId, txHash, receipt }
 
   const handleDocChange = (e) => {
     const file = e.target.files?.[0];
@@ -51,15 +60,19 @@ export default function UploadForm() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
+    setErrorType(null);
     setSuccess(null);
+    setMintResult(null);
 
     if (!title || !docFile) {
       setError("Title and document file are required.");
+      setErrorType("validation");
       return;
     }
 
     if (!address) {
       setError("Please connect your wallet to mint an NFT.");
+      setErrorType("wallet");
       return;
     }
 
@@ -102,27 +115,93 @@ export default function UploadForm() {
     } catch (err) {
       console.error("Upload or Mint Error:", err);
       setError(err?.message || "Something went wrong. Please try again.");
+      setErrorType("upload");
       setSubmitting(false);
     }
   };
 
-  // 4️⃣ React to minting status
+  // 4️⃣ React to writeContract errors (wallet/chain failures)
   useEffect(() => {
     if (writeError) {
-      setError(writeError.message || "Transaction failed. Please try again.");
+      console.error("Write Contract Error:", writeError);
+      
+      // Distinguish between user rejection and other errors
+      if (writeError.code === "ACTION_REJECTED" || writeError.message?.includes("User rejected")) {
+        setError("Transaction rejected by user. Please try again.");
+        setErrorType("wallet");
+      } else if (writeError.message?.includes("insufficient funds")) {
+        setError("Insufficient funds for gas. Please add CELO to your wallet.");
+        setErrorType("wallet");
+      } else {
+        setError(writeError.message || "Transaction failed. Please try again.");
+        setErrorType("chain");
+      }
+      
       setSubmitting(false);
     }
   }, [writeError]);
 
+  // 5️⃣ Parse receipt and extract token ID on confirmation
   useEffect(() => {
-    if (isConfirmed) {
-      setSuccess("🎉 Document uploaded successfully");
-      setSubmitting(false);
+    if (isConfirmed && receipt) {
+      try {
+        // Find the Transfer event from our contract
+        const transferLog = receipt.logs.find(
+          (log) =>
+            log.address.toLowerCase() === contractAddress.toLowerCase() &&
+            log.topics[0] === TRANSFER_EVENT.type
+        );
+
+        if (!transferLog) {
+          throw new Error("Transfer event not found in transaction receipt");
+        }
+
+        // Parse the tokenId from the log (third indexed parameter = topics[3])
+        const tokenId = BigInt(transferLog.topics[3]).toString();
+
+        if (!tokenId || tokenId === "0") {
+          throw new Error("Invalid token ID in receipt");
+        }
+
+        // Store complete mint result
+        setMintResult({
+          tokenId,
+          txHash: receipt.transactionHash,
+          receipt,
+        });
+
+        setSuccess(`🎉 Document uploaded successfully! Token ID: ${tokenId}`);
+        console.log("Mint result:", { tokenId, txHash: receipt.transactionHash });
+      } catch (err) {
+        console.error("Receipt parsing error:", err);
+        setError(`Mint completed but failed to parse receipt: ${err.message}`);
+        setErrorType("receipt");
+      } finally {
+        setSubmitting(false);
+      }
     } else if (isFailed) {
-      setError("Transaction failed. Please try again.");
+      setError("Transaction failed on-chain. Please try again.");
+      setErrorType("chain");
       setSubmitting(false);
     }
-  }, [isConfirmed, isFailed]);
+  }, [isConfirmed, isFailed, receipt]);
+
+  // Reset form on success
+  const handleReset = () => {
+    setTitle("");
+    setDescription("");
+    setPrice("");
+    setUsageRights("Standard License (download only)");
+    setVisibility("public");
+    setDocFile(null);
+    setDocFileName(null);
+    setThumbFile(null);
+    setThumbPreview(null);
+    setSuccess(null);
+    setError(null);
+    setErrorType(null);
+    setMintResult(null);
+  };
 
   return (
     <form
@@ -268,14 +347,40 @@ export default function UploadForm() {
       </div>
 
       {/* Feedback */}
-      {error && <p className="text-red-600 text-sm mb-4">{error}</p>}
-      {success && <p className="text-green-600 text-sm mb-4">{success}</p>}
+      {error && (
+        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
+          <p className="text-red-600 text-sm">{error}</p>
+          {errorType && (
+            <p className="text-red-500 text-xs mt-1">Error type: {errorType}</p>
+          )}
+        </div>
+      )}
+      {success && (
+        <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-md">
+          <p className="text-green-600 text-sm">{success}</p>
+          {mintResult && (
+            <div className="mt-2 text-xs text-green-700">
+              <p>Transaction: {mintResult.txHash.slice(0, 10)}...{mintResult.txHash.slice(-8)}</p>
+              <p>Token ID: {mintResult.tokenId}</p>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Buttons */}
       <div className="flex justify-end gap-4">
+        {success && (
+          <button
+            type="button"
+            onClick={handleReset}
+            className="px-5 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition text-sm font-medium"
+          >
+            Upload Another
+          </button>
+        )}
         <button
           type="submit"
-          disabled={submitting || isPending || isWaiting}
+          disabled={submitting || isPending || isWaiting || success}
           className="px-5 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition text-sm font-medium disabled:opacity-60"
         >
           {submitting
