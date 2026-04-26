@@ -81,7 +81,7 @@ export default function UploadForm() {
         price,
         usageRights,
         visibility,
-        fileUrl: uploadData.fileUrl,
+        storageKey: uploadData.storageKey,
         thumbnail: uploadData.image,
         metadataUrl: uploadData.metadata,
         creator: address,

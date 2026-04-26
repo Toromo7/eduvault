@@ -42,3 +42,9 @@ export function useCreateMaterial() {
     },
   });
 }
+
+export function useDownloadMaterial() {
+  return useMutation({
+    mutationFn: (id) => materialService.getDownloadUrl(id),
+  });
+}

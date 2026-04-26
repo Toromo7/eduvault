@@ -25,4 +25,8 @@ export const materialService = {
       method: 'POST'
     });
   },
+
+  getDownloadUrl: async (id) => {
+    return apiClient(`/api/materials/download/${id}`);
+  },
 };
