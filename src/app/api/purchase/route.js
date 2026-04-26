@@ -1,4 +1,4 @@
-import clientPromise from '@/lib/mongodb'
+import { getDb } from '@/lib/mongodb'
 import { NextResponse } from 'next/server'
 
 export async function POST(req) {
@@ -12,8 +12,7 @@ export async function POST(req) {
       )
     }
 
-    const client = await clientPromise
-    const db = client.db('eduvault')
+    const db = await getDb()
 
     // 1. Verify the transaction (Prototype Scope)
     // In a production environment, you would query the Stellar Horizon API here

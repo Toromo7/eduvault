@@ -1,4 +1,4 @@
-import clientPromise from '@/lib/mongodb'
+import { getDb } from '@/lib/mongodb'
 import { NextResponse } from 'next/server'
 import { ObjectId } from 'mongodb'
 
@@ -15,8 +15,7 @@ export async function GET(req, { params }) {
       )
     }
 
-    const client = await clientPromise
-    const db = client.db('eduvault')
+    const db = await getDb()
 
     // 1. Find material
     const material = await db

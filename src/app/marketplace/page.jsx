@@ -2,37 +2,83 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { FaHeart, FaExclamationCircle } from "react-icons/fa";
+import { FaHeart } from "react-icons/fa";
 import { motion } from "framer-motion";
 import Navbar from "@/components/Navbar";
-import { useEffect, useState } from "react";
 
-/**
- * MarketPage
- * Renders the public marketplace listing sourced from the canonical data layer.
- * Replaces hardcoded demo data with real materials from /api/market-materials.
- */
 export default function MarketPage() {
-	const [materials, setMaterials] = useState([]);
-	const [loading, setLoading] = useState(true);
-	const [error, setError] = useState(null);
-
-	useEffect(() => {
-		const fetchMaterials = async () => {
-			try {
-				const res = await fetch("/api/market-materials");
-				if (!res.ok) throw new Error("Could not load marketplace materials.");
-				const data = await res.json();
-				setMaterials(data.items || []);
-			} catch (err) {
-				console.error("Marketplace fetch failed:", err);
-				setError(err.message);
-			} finally {
-				setLoading(false);
-			}
-		};
-		fetchMaterials();
-	}, []);
+	const materials = [
+		{
+			title: "CHM 112 – Lab Report Template (UNN)",
+			author: "Chijioke M.",
+			likes: "21.5K",
+			price: "0.25 XLM",
+			image: "/images/image5.jpg",
+		},
+		{
+			title: "MTH 101 – Calculus Cheat Sheet",
+			author: "Ada O.",
+			likes: "9.2K",
+			price: "0.10 XLM",
+			image: "/images/image1.jpg",
+		},
+		{
+			title: "BIO 201 – Anatomy Notes",
+			author: "Ngozi A.",
+			likes: "4.8K",
+			price: "0.15 XLM",
+			image: "/images/image2.jpg",
+		},
+		{
+			title: "ENG 305 – Research Paper Guide",
+			author: "Emeka K.",
+			likes: "1.2K",
+			price: "0.05 XLM",
+			image: "/images/image3.jpg",
+		},
+		{
+			title: "PHY 110 – Problem Sets",
+			author: "Uche N.",
+			likes: "12.3K",
+			price: "0.20 XLM",
+			image: "/images/image4.jpg",
+		},
+		{
+			title: "COM 210 – Software Eng. Slides",
+			author: "Tunde L.",
+			likes: "8.6K",
+			price: "0.30 XLM",
+			image: "/images/image5.jpg",
+		},
+		{
+			title: "ECO 102 – Microeconomics Past Questions",
+			author: "Funmi S.",
+			likes: "3.4K",
+			price: "0.08 XLM",
+			image: "/images/image6.jpg",
+		},
+		{
+			title: "MED 401 – Pharmacology Summary",
+			author: "Dr. Amina",
+			likes: "6.7K",
+			price: "0.35 XLM",
+			image: "/images/image7.jpg",
+		},
+		{
+			title: "PSY 100 – Study Tips & Mnemonics",
+			author: "Kemi R.",
+			likes: "2.1K",
+			price: "0.03 XLM",
+			image: "/images/image8.jpg",
+		},
+		{
+			title: "PSY 101 – Study Tips & Mnemonics",
+			author: "Emma R.",
+			likes: "2.1K",
+			price: "0.03 XLM",
+			image: "/images/image9.jpg",
+		},
+	];
 
 	const categories = [
 		"Past Questions & Exam Papers",
@@ -46,12 +92,6 @@ export default function MarketPage() {
 		"Faculty Notes",
 		"Community and Learning Resources",
 	];
-
-	// Helper to shorten wallet addresses
-	const shortenAddress = (address) => {
-		if (!address) return "Anonymous";
-		return `${address.slice(0, 6)}...${address.slice(-4)}`;
-	};
 
 	return (
 		<>
@@ -97,15 +137,15 @@ export default function MarketPage() {
 							<p className="text-gray-700 text-sm mb-4">
 								Own your knowledge. Earn from your notes.
 							</p>
-							<Link href="/dashboard/upload" className="inline-block bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-md text-sm font-semibold transition-all">
+							<button className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-md text-sm font-semibold transition-all">
 								Become a Creator
-							</Link>
+							</button>
 						</div>
 
 						<div className="w-40 h-40 mt-6 md:mt-0 flex items-center justify-center">
 							<Image
-								src="/images/celo.png"
-								alt="Celo Token"
+								src="/images/stellar.png"
+								alt="Stellar token"
 								width={144}
 								height={144}
 								className="object-contain"
@@ -124,119 +164,104 @@ export default function MarketPage() {
 									<option>Engineering</option>
 									<option>Pharmacy</option>
 								</select>
+								<select className="border border-gray-300 bg-white rounded-md px-3 py-1 text-sm focus:ring-1 focus:ring-blue-300">
+									<option>Price Range</option>
+								</select>
+								<select className="border border-gray-300 bg-white rounded-md px-3 py-1 text-sm focus:ring-1 focus:ring-blue-300">
+									<option>Latest Releases</option>
+									<option>Most Downloaded</option>
+								</select>
 							</div>
 						</div>
 
 						<div className="text-sm text-gray-600 mt-4 md:mt-0">
 							Sort by:{" "}
 							<select className="border border-gray-300 bg-white rounded-md px-3 py-1 text-sm ml-1 focus:ring-1 focus:ring-blue-300">
+								<option>Most Popular</option>
 								<option>Newest</option>
-								<option>Price: Low to High</option>
 							</select>
 						</div>
 					</div>
 
-					{/* Loading State */}
-					{loading && (
-						<div className="flex flex-col items-center justify-center py-20">
-							<div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
-							<p className="text-gray-600">Loading marketplace materials...</p>
-						</div>
-					)}
-
-					{/* Error State */}
-					{error && !loading && (
-						<div className="bg-red-50 border border-red-200 text-red-700 p-6 rounded-2xl flex items-center gap-4">
-							<FaExclamationCircle className="text-2xl" />
-							<p>{error}</p>
-						</div>
-					)}
-
 					{/* Study Materials Grid */}
-					{!loading && !error && materials.length === 0 && (
-						<div className="bg-white border border-gray-200 p-12 rounded-2xl text-center shadow-sm">
-							<p className="text-gray-600 mb-2">No public materials found.</p>
-							<p className="text-sm text-gray-500">Be the first to upload one!</p>
-						</div>
-					)}
+					<motion.div
+						initial={{ opacity: 0 }}
+						animate={{ opacity: 1 }}
+						transition={{ duration: 0.6 }}
+						className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+					>
+						{materials.map((material, i) => (
+							<Link
+								href={`/marketplace/${i}`}
+								key={i}
+								className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 block"
+							>
+								{/* Thumbnail */}
+								<div className="relative w-full h-44 bg-gray-100">
+									<Image
+										src={material.image}
+										alt={material.title}
+										fill
+										className="object-cover"
+									/>
+									<button className="absolute top-3 left-3 bg-white text-xs px-3 py-1 rounded-full shadow-sm text-gray-700 font-medium hover:bg-gray-50 transition">
+										Get This!
+									</button>
+								</div>
 
-					{!loading && !error && materials.length > 0 && (
-						<motion.div
-							initial={{ opacity: 0 }}
-							animate={{ opacity: 1 }}
-							transition={{ duration: 0.6 }}
-							className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
-						>
-							{materials.map((material) => (
-								<Link
-									href={`/marketplace/${material._id}`}
-									key={material._id}
-									className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 block"
-								>
-									{/* Thumbnail */}
-									<div className="relative w-full h-44 bg-gray-100">
-										{material.thumbnailUrl ? (
-											<Image
-												src={material.thumbnailUrl}
-												alt={material.title}
-												fill
-												className="object-cover"
-											/>
-										) : (
-											<div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">
-												No Preview
-											</div>
-										)}
-										<button className="absolute top-3 left-3 bg-white text-xs px-3 py-1 rounded-full shadow-sm text-gray-700 font-medium hover:bg-gray-50 transition">
-											Details
-										</button>
-									</div>
+								{/* Info */}
+								<div className="p-4">
+									<h3 className="text-sm font-semibold text-gray-900 mb-1 line-clamp-1">
+										{material.title}
+									</h3>
+									<p className="text-xs text-gray-500 mb-3">
+										by {material.author}
+									</p>
 
-									{/* Info */}
-									<div className="p-4">
-										<h3 className="text-sm font-semibold text-gray-900 mb-1 line-clamp-1" title={material.title}>
-											{material.title}
-										</h3>
-										<p className="text-xs text-gray-500 mb-3">
-											by {shortenAddress(material.userAddress)}
-										</p>
-
-										<div className="flex justify-between items-center text-xs text-gray-500 pt-2 border-t border-gray-50">
-											<div className="flex items-center gap-1">
-												<FaHeart className="text-pink-500" />
-												<span>0 Likes</span>
-											</div>
-											<div className="flex items-center gap-1">
-												<span className="font-semibold text-gray-800">
-													{material.price > 0 ? `${material.price} CELO` : "Free"}
-												</span>
-											</div>
+									<div className="flex justify-between items-center text-xs text-gray-500">
+										<div className="flex items-center gap-1">
+											<FaHeart className="text-pink-500" />
+											<span>{material.likes} Likes</span>
 										</div>
+										<span>Price</span>
 									</div>
-								</Link>
-							))}
-						</motion.div>
-					)}
+
+									<div className="flex justify-between items-center mt-1">
+										<span className="text-sm font-semibold text-gray-800">
+											{material.price}
+										</span>
+										<span className="text-xs text-gray-400">XLM</span>
+									</div>
+								</div>
+							</Link>
+						))}
+					</motion.div>
 
 					{/* Pagination */}
-					{!loading && materials.length > 0 && (
-						<div className="flex items-center justify-between mt-12 text-sm text-gray-600">
-							<button className="border border-gray-300 rounded-md px-3 py-1 hover:bg-gray-100 disabled:opacity-50" disabled>
-								Previous
-							</button>
-							<div className="flex items-center gap-2">
-								<button className="w-8 h-8 flex items-center justify-center rounded-md bg-blue-600 text-white">
-									1
+					<div className="flex items-center justify-between mt-12 text-sm text-gray-600">
+						<button className="border border-gray-300 rounded-md px-3 py-1 hover:bg-gray-100">
+							Previous
+						</button>
+						<div className="flex items-center gap-2">
+							{[1, 2, 3, 4, 5].map((num) => (
+								<button
+									key={num}
+									className={`w-8 h-8 flex items-center justify-center rounded-md ${
+										num === 1
+											? "bg-blue-600 text-white"
+											: "bg-white border border-gray-300 hover:bg-gray-100"
+									}`}
+								>
+									{num}
 								</button>
-							</div>
-							<button className="border border-gray-300 rounded-md px-3 py-1 hover:bg-gray-100 disabled:opacity-50" disabled>
-								Next
-							</button>
+							))}
 						</div>
-					)}
+						<button className="border border-gray-300 rounded-md px-3 py-1 hover:bg-gray-100">
+							Next
+						</button>
+					</div>
 				</main>
 			</section>
 		</>
 	);
 }
-

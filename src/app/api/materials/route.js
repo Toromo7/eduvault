@@ -2,9 +2,9 @@ import { NextResponse } from "next/server";
 import { auditLog } from "@/lib/api/audit";
 import { withApiHardening } from "@/lib/api/hardening";
 import { validateMaterialPayload } from "@/lib/api/validation";
-import jwt from "jsonwebtoken";
 import { getDb } from "@/lib/mongodb";
 import { ObjectId } from "mongodb";
+import { verifyDashboardToken } from "@/lib/auth/session";
 
 export const runtime = "nodejs";
 
@@ -13,12 +13,11 @@ async function getUserFromCookie(request) {
   const cookieMatch = cookieHeader.match(/auth_token=([^;]+)/);
   const token = cookieMatch ? decodeURIComponent(cookieMatch[1]) : null;
   if (!token) return null;
-  try {
-    const payload = jwt.verify(token, process.env.JWT_SECRET);
-    return payload;
-  } catch {
+  const verification = await verifyDashboardToken(token, process.env.JWT_SECRET);
+  if (!verification.valid) {
     return null;
   }
+  return verification.payload;
 }
 
 export async function POST(request) {

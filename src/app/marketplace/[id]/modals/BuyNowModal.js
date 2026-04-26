@@ -70,8 +70,8 @@ export default function BuyNowModal({ isOpen, onClose, price }) {
                                 <span className="text-gray-600">You will pay</span>
                                 <div className="flex items-center gap-2 font-semibold text-gray-800">
                                     <Image
-                                        src="/images/celo.png"
-                                        alt="Celo"
+                                        src="/images/stellar.png"
+                                        alt="Stellar"
                                         width={20}
                                         height={20}
                                     />

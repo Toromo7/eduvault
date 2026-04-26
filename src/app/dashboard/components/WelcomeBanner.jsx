@@ -15,14 +15,14 @@ export default function WelcomeBanner({ user }) {
                 <div className="relative z-10 max-w-[60%]">
                     <p className="text-white mb-4 text-lg md:text-xl font-semibold leading-snug">
                         <span className="block">Discover and sell</span>
-                        <span className="block">your own NFTs</span>
+                        <span className="block">your own materials</span>
                     </p>
                     <button className="bg-[#1E1E2D] text-white px-5 py-2 rounded-full hover:bg-[#2E2E3D] shadow-sm">
                         Discover Now
                     </button>
                 </div>
                 <div className="absolute z-111111 right-[-10px] top-[-20px] w-[160px] h-[160px]">
-                    <Image src="/celo.png" alt="Celo Coin" width={160} height={160} className="drop-shadow-xl" />
+                    <Image src="/images/stellar.png" alt="Stellar badge" width={160} height={160} className="drop-shadow-xl" />
                 </div>
             </div>
         </div>

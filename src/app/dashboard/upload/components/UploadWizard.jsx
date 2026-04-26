@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useState, useEffect } from "react";
 import { FaCloudUploadAlt, FaCheck, FaArrowRight, FaArrowLeft, FaFileAlt, FaTags, FaDollarSign, FaEye } from "react-icons/fa";
 import { useAccount, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
@@ -367,8 +368,15 @@ export default function UploadWizard() {
               <label className="block text-sm font-medium mb-2">Thumbnail Image (Optional)</label>
               <div className="flex items-center gap-4">
                 <input type="file" accept="image/*" onChange={handleThumbChange} className="text-sm" />
-                {thumbPreview && (
-                  <img src={thumbPreview} alt="Preview" className="w-16 h-16 rounded object-cover border" />
+              {thumbPreview && (
+                  <Image
+                    src={thumbPreview}
+                    alt="Preview"
+                    width={64}
+                    height={64}
+                    unoptimized
+                    className="rounded object-cover border"
+                  />
                 )}
               </div>
             </div>
@@ -496,7 +504,14 @@ export default function UploadWizard() {
               {thumbPreview && (
                 <div>
                   <p className="text-xs text-gray-500 mb-1">Thumbnail</p>
-                  <img src={thumbPreview} alt="Thumbnail" className="w-20 h-20 rounded object-cover" />
+                  <Image
+                    src={thumbPreview}
+                    alt="Thumbnail"
+                    width={80}
+                    height={80}
+                    unoptimized
+                    className="rounded object-cover"
+                  />
                 </div>
               )}
               <div>

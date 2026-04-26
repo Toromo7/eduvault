@@ -6,19 +6,19 @@ export default function TrendingMaterials() {
 			title: "CHM12 — Lab Report Template (UNN)",
 			author: "@Student M",
 			likes: "2.1M Likes",
-			price: "0.30 CELO",
+			price: "0.30 XLM",
 		},
 		{
 			title: "CHM12 — Lab Report Template (UNN)",
 			author: "@Student M",
 			likes: "2.1M Likes",
-			price: "0.30 CELO",
+			price: "0.30 XLM",
 		},
 		{
 			title: "CHM12 — Lab Report Template",
 			author: "@Student M",
 			likes: "2.1M Likes",
-			price: "0.30 CELO",
+			price: "0.30 XLM",
 		},
 	];
 
