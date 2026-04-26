@@ -9,6 +9,7 @@ import Navbar from "@/components/Navbar";
 import BuyNowModal from "./modals/BuyNowModal";
 import { useParams } from "next/navigation";
 import { useMaterialDetail } from "@/hooks/api/useMaterials";
+import { useEntitlement } from "@/hooks/api/useEntitlements";
 import { QueryStateProvider } from "@/components/common/QueryStateProvider";
 
 export default function MaterialDetailsPage() {
@@ -16,6 +17,9 @@ export default function MaterialDetailsPage() {
 	const id = params.id as string;
 	const [showBuyModal, setShowBuyModal] = useState(false);
 	const materialQuery = useMaterialDetail(id);
+	const entitlementQuery = useEntitlement(id);
+
+	const isOwned = entitlementQuery.data?.owned || false;
 
 	return (
 		<>
@@ -88,15 +92,26 @@ export default function MaterialDetailsPage() {
 
 									{/* Buttons */}
 									<div className="flex items-center gap-3 mt-4">
-										<button className="px-6 py-2 border border-gray-300 text-gray-700 font-semibold rounded-md hover:bg-gray-100 transition">
-											Add to Cart
-										</button>
-										<button
-											onClick={() => setShowBuyModal(true)}
-											className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-md transition"
-										>
-											Buy Now!
-										</button>
+										{isOwned ? (
+											<button 
+												className="px-8 py-2.5 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-md transition flex items-center gap-2 shadow-sm"
+												onClick={() => window.open(material.downloadUrl || '#', '_blank')}
+											>
+												<FaCheckCircle /> Download Material
+											</button>
+										) : (
+											<>
+												<button className="px-6 py-2 border border-gray-300 text-gray-700 font-semibold rounded-md hover:bg-gray-100 transition">
+													Add to Cart
+												</button>
+												<button
+													onClick={() => setShowBuyModal(true)}
+													className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-md transition"
+												>
+													Buy Now!
+												</button>
+											</>
+										)}
 									</div>
 
 									{/* Likes */}
@@ -106,6 +121,7 @@ export default function MaterialDetailsPage() {
 									</div>
 								</div>
 							</div>
+
 
 							{/* About + Author Info */}
 							<div className="grid md:grid-cols-2 gap-6 mt-10">

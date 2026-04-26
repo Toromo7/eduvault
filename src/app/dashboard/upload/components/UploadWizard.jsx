@@ -7,8 +7,10 @@ import { useAccount, useWriteContract, useWaitForTransactionReceipt } from "wagm
 import { abi } from "../../../../../contracts/EduVaultAbi.js";
 import { celoSepolia } from "wagmi/chains";
 import { parseAbiItem } from "viem";
+import { useCreateMaterial, useUploadFile } from "@/hooks/api/useMaterials";
 
 const contractAddress = "0x3f48520ca0d8d51345b416b5a3e083dac8790f55";
+
 
 const TRANSFER_EVENT = parseAbiItem(
   "event Transfer(address indexed from, address indexed to, uint256 indexed tokenId)"
@@ -108,6 +110,9 @@ export default function UploadWizard() {
     }
   };
 
+  const uploadFileMutation = useUploadFile();
+  const createMaterialMutation = useCreateMaterial();
+
   const handleSubmit = async () => {
     setError(null);
     setErrorType(null);
@@ -138,18 +143,14 @@ export default function UploadWizard() {
       formData.append("visibility", visibility);
       formData.append("owner", address);
 
-      // 2️⃣ Upload to backend
-      const uploadRes = await fetch("/api/upload", {
-        method: "POST",
-        body: formData,
-      });
-      const uploadData = await uploadRes.json();
+      // 2️⃣ Upload to backend using shared service
+      const uploadData = await uploadFileMutation.mutateAsync(formData);
 
       clearInterval(progressInterval);
       setUploadProgress(100);
 
-      if (!uploadRes.ok || !uploadData?.metadata) {
-        throw new Error(uploadData?.error || "File upload failed");
+      if (!uploadData?.metadata) {
+        throw new Error("File upload failed: No metadata returned");
       }
 
       const tokenURI = uploadData.metadata;
@@ -170,6 +171,7 @@ export default function UploadWizard() {
       setWorkflowState("failed");
     }
   };
+
 
   // Handle write errors
   useEffect(() => {

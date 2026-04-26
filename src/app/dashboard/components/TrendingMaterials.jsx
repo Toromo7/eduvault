@@ -1,11 +1,12 @@
 "use client";
 import { FaHeart } from "react-icons/fa";
-import { useMarketplaceMaterials } from "@/hooks/api/useMaterials";
+import { useTrendingMaterials } from "@/hooks/api/useMaterials";
 import { QueryStateProvider } from "@/components/common/QueryStateProvider";
+import { MaterialCardSkeleton } from "@/components/common/DataSkeleton";
 import Link from "next/link";
 
 export default function TrendingMaterials() {
-	const materialsQuery = useMarketplaceMaterials({ pageSize: 3 });
+	const materialsQuery = useTrendingMaterials({ pageSize: 3 });
 
 	return (
 		<div className="p-6 bg-white border border-gray-100 rounded-xl shadow-sm">
@@ -18,6 +19,19 @@ export default function TrendingMaterials() {
 			
 			<QueryStateProvider 
 				query={materialsQuery}
+				loadingComponent={
+					<div className="space-y-4">
+						{[1, 2, 3].map(i => (
+							<div key={i} className="flex gap-4 items-start">
+								<div className="w-16 h-20 bg-gray-100 rounded-md animate-pulse" />
+								<div className="flex-1 space-y-2">
+									<div className="h-3 bg-gray-100 rounded w-full animate-pulse" />
+									<div className="h-2 bg-gray-100 rounded w-1/2 animate-pulse" />
+								</div>
+							</div>
+						))}
+					</div>
+				}
 				renderData={(data) => (
 					<div className="space-y-4">
 						{data.items?.slice(0, 3).map((item, i) => (
@@ -54,3 +68,4 @@ export default function TrendingMaterials() {
 		</div>
 	);
 }
+

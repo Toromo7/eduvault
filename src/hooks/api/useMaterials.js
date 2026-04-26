@@ -6,9 +6,18 @@ export function useMarketplaceMaterials(params = {}) {
   return useQuery({
     queryKey: queryKeys.materials.marketplace(params),
     queryFn: () => materialService.getMarketplaceMaterials(params),
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
   });
 }
+
+export function useTrendingMaterials(params = {}) {
+  return useQuery({
+    queryKey: queryKeys.materials.trending(params),
+    queryFn: () => materialService.getTrendingMaterials(params),
+    staleTime: 10 * 60 * 1000,
+  });
+}
+
 
 export function useMaterialDetail(id) {
   return useQuery({

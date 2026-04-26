@@ -3,6 +3,7 @@ import Link from "next/link";
 import { FaBook, FaDownload, FaStar } from "react-icons/fa";
 import { usePurchaseHistory } from "@/hooks/api/usePurchases";
 import { QueryStateProvider } from "@/components/common/QueryStateProvider";
+import { ActivityItemSkeleton } from "@/components/common/DataSkeleton";
 
 export default function LatestActivity() {
   const purchaseQuery = usePurchaseHistory();
@@ -16,7 +17,13 @@ export default function LatestActivity() {
       
       <QueryStateProvider 
         query={purchaseQuery}
+        loadingComponent={
+          <div className="space-y-4">
+            {[1, 2, 3, 4, 5].map(i => <ActivityItemSkeleton key={i} />)}
+          </div>
+        }
         emptyComponent={
+
           <div className="text-center py-8">
             <p className="text-sm text-gray-500">No activity yet. Start exploring the marketplace!</p>
             <Link href="/marketplace" className="text-indigo-600 text-xs font-medium mt-2 inline-block">Go to Marketplace</Link>

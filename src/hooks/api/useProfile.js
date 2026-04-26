@@ -24,3 +24,20 @@ export function useCreateProfile() {
     },
   });
 }
+
+export function useTopCreators() {
+  return useQuery({
+    queryKey: queryKeys.profile.top(),
+    queryFn: () => profileService.getTopCreators(),
+    staleTime: 15 * 60 * 1000,
+  });
+}
+
+export function useDashboardStats() {
+  return useQuery({
+    queryKey: queryKeys.dashboard.stats(),
+    queryFn: () => profileService.getDashboardStats(),
+    staleTime: 5 * 60 * 1000,
+  });
+}
+

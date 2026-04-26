@@ -9,8 +9,12 @@ export const purchaseService = {
     return apiClient(`/api/entitlements?materialId=${materialId}`);
   },
 
+  checkBatchEntitlements: async (materialIds) => {
+    return apiClient('/api/entitlements/batch', { body: { materialIds } });
+  },
+
   getPurchaseHistory: async () => {
-    // Assuming /api/purchase with GET returns history
     return apiClient('/api/purchase');
   },
 };
+

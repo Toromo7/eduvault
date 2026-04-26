@@ -7,6 +7,8 @@ import { motion } from "framer-motion";
 import Navbar from "@/components/Navbar";
 import { useMarketplaceMaterials } from "@/hooks/api/useMaterials";
 import { QueryStateProvider } from "@/components/common/QueryStateProvider";
+import { MaterialCardSkeleton } from "@/components/common/DataSkeleton";
+
 
 export default function MarketPage() {
 	const materialsQuery = useMarketplaceMaterials();
@@ -117,7 +119,13 @@ export default function MarketPage() {
 					{/* Study Materials Grid */}
 					<QueryStateProvider 
 						query={materialsQuery}
+						loadingComponent={
+							<div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+								{[1, 2, 3, 4, 5, 6, 7, 8].map(i => <MaterialCardSkeleton key={i} />)}
+							</div>
+						}
 						renderData={(data) => (
+
 							<motion.div
 								initial={{ opacity: 0 }}
 								animate={{ opacity: 1 }}

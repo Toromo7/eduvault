@@ -29,4 +29,10 @@ export const materialService = {
   getDownloadUrl: async (id) => {
     return apiClient(`/api/materials/download/${id}`);
   },
+
+  getTrendingMaterials: async (params = {}) => {
+    const searchParams = new URLSearchParams({ ...params, sort: 'trending' });
+    return apiClient(`/api/market-materials?${searchParams.toString()}`);
+  },
 };
+

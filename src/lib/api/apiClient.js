@@ -22,25 +22,44 @@ export async function apiClient(endpoint, { body, ...customConfig } = {}) {
     config.body = body instanceof FormData ? body : JSON.stringify(body);
   }
 
-  let data;
   try {
     const response = await fetch(endpoint, config);
+    
+    // Handle successful responses
     if (response.ok) {
-      data = await response.json();
-      return data;
+      // Check if response is empty
+      const contentType = response.headers.get("content-type");
+      if (contentType && contentType.includes("application/json")) {
+        return await response.json();
+      }
+      return await response.text();
     }
     
     // Handle specific error statuses
     if (response.status === 401) {
-       // Optional: Redirect to login or handle session expiry
+      console.warn('API Unauthorized: Possible session expiry');
     }
 
-    const errorData = await response.json();
-    const error = new Error(errorData.error || 'Something went wrong');
+    let errorData;
+    try {
+      errorData = await response.json();
+    } catch (e) {
+      errorData = { error: 'Unknown server error' };
+    }
+
+    const error = new Error(errorData.error || `HTTP error! status: ${response.status}`);
     error.status = response.status;
     error.data = errorData;
+    
+    console.error(`API Error [${response.status}] at ${endpoint}:`, error.message);
     throw error;
   } catch (err) {
-    return Promise.reject(err.message || err);
+    // If it's already an error object with status, just rethrow it
+    if (err.status) throw err;
+    
+    const wrappedError = new Error(err.message || 'Network request failed');
+    console.error(`API Network Error at ${endpoint}:`, wrappedError.message);
+    throw wrappedError;
   }
 }
+
