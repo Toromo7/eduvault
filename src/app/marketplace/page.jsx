@@ -5,80 +5,11 @@ import Link from "next/link";
 import { FaHeart } from "react-icons/fa";
 import { motion } from "framer-motion";
 import Navbar from "@/components/Navbar";
+import { useMarketplaceMaterials } from "@/hooks/api/useMaterials";
+import { QueryStateProvider } from "@/components/common/QueryStateProvider";
 
 export default function MarketPage() {
-	const materials = [
-		{
-			title: "CHM 112 – Lab Report Template (UNN)",
-			author: "Chijioke M.",
-			likes: "21.5K",
-			price: "0.25 XLM",
-			image: "/images/image5.jpg",
-		},
-		{
-			title: "MTH 101 – Calculus Cheat Sheet",
-			author: "Ada O.",
-			likes: "9.2K",
-			price: "0.10 XLM",
-			image: "/images/image1.jpg",
-		},
-		{
-			title: "BIO 201 – Anatomy Notes",
-			author: "Ngozi A.",
-			likes: "4.8K",
-			price: "0.15 XLM",
-			image: "/images/image2.jpg",
-		},
-		{
-			title: "ENG 305 – Research Paper Guide",
-			author: "Emeka K.",
-			likes: "1.2K",
-			price: "0.05 XLM",
-			image: "/images/image3.jpg",
-		},
-		{
-			title: "PHY 110 – Problem Sets",
-			author: "Uche N.",
-			likes: "12.3K",
-			price: "0.20 XLM",
-			image: "/images/image4.jpg",
-		},
-		{
-			title: "COM 210 – Software Eng. Slides",
-			author: "Tunde L.",
-			likes: "8.6K",
-			price: "0.30 XLM",
-			image: "/images/image5.jpg",
-		},
-		{
-			title: "ECO 102 – Microeconomics Past Questions",
-			author: "Funmi S.",
-			likes: "3.4K",
-			price: "0.08 XLM",
-			image: "/images/image6.jpg",
-		},
-		{
-			title: "MED 401 – Pharmacology Summary",
-			author: "Dr. Amina",
-			likes: "6.7K",
-			price: "0.35 XLM",
-			image: "/images/image7.jpg",
-		},
-		{
-			title: "PSY 100 – Study Tips & Mnemonics",
-			author: "Kemi R.",
-			likes: "2.1K",
-			price: "0.03 XLM",
-			image: "/images/image8.jpg",
-		},
-		{
-			title: "PSY 101 – Study Tips & Mnemonics",
-			author: "Emma R.",
-			likes: "2.1K",
-			price: "0.03 XLM",
-			image: "/images/image9.jpg",
-		},
-	];
+	const materialsQuery = useMarketplaceMaterials();
 
 	const categories = [
 		"Past Questions & Exam Papers",
@@ -184,82 +115,89 @@ export default function MarketPage() {
 					</div>
 
 					{/* Study Materials Grid */}
-					<motion.div
-						initial={{ opacity: 0 }}
-						animate={{ opacity: 1 }}
-						transition={{ duration: 0.6 }}
-						className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
-					>
-						{materials.map((material, i) => (
-							<Link
-								href={`/marketplace/${i}`}
-								key={i}
-								className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 block"
+					<QueryStateProvider 
+						query={materialsQuery}
+						renderData={(data) => (
+							<motion.div
+								initial={{ opacity: 0 }}
+								animate={{ opacity: 1 }}
+								transition={{ duration: 0.6 }}
+								className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
 							>
-								{/* Thumbnail */}
-								<div className="relative w-full h-44 bg-gray-100">
-									<Image
-										src={material.image}
-										alt={material.title}
-										fill
-										className="object-cover"
-									/>
-									<button className="absolute top-3 left-3 bg-white text-xs px-3 py-1 rounded-full shadow-sm text-gray-700 font-medium hover:bg-gray-50 transition">
-										Get This!
-									</button>
-								</div>
-
-								{/* Info */}
-								<div className="p-4">
-									<h3 className="text-sm font-semibold text-gray-900 mb-1 line-clamp-1">
-										{material.title}
-									</h3>
-									<p className="text-xs text-gray-500 mb-3">
-										by {material.author}
-									</p>
-
-									<div className="flex justify-between items-center text-xs text-gray-500">
-										<div className="flex items-center gap-1">
-											<FaHeart className="text-pink-500" />
-											<span>{material.likes} Likes</span>
+								{data.items?.map((material, i) => (
+									<Link
+										href={`/marketplace/${material._id}`}
+										key={material._id || i}
+										className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 block"
+									>
+										{/* Thumbnail */}
+										<div className="relative w-full h-44 bg-gray-100">
+											<Image
+												src={material.image || material.thumbnail || "/images/image5.jpg"}
+												alt={material.title}
+												fill
+												className="object-cover"
+											/>
+											<button className="absolute top-3 left-3 bg-white text-xs px-3 py-1 rounded-full shadow-sm text-gray-700 font-medium hover:bg-gray-50 transition">
+												Get This!
+											</button>
 										</div>
-										<span>Price</span>
-									</div>
 
-									<div className="flex justify-between items-center mt-1">
-										<span className="text-sm font-semibold text-gray-800">
-											{material.price}
-										</span>
-										<span className="text-xs text-gray-400">XLM</span>
-									</div>
-								</div>
-							</Link>
-						))}
-					</motion.div>
+										{/* Info */}
+										<div className="p-4">
+											<h3 className="text-sm font-semibold text-gray-900 mb-1 line-clamp-1">
+												{material.title}
+											</h3>
+											<p className="text-xs text-gray-500 mb-3">
+												by {material.author || material.creator || "Anonymous"}
+											</p>
+
+											<div className="flex justify-between items-center text-xs text-gray-500">
+												<div className="flex items-center gap-1">
+													<FaHeart className="text-pink-500" />
+													<span>{material.likes || 0} Likes</span>
+												</div>
+												<span>Price</span>
+											</div>
+
+											<div className="flex justify-between items-center mt-1">
+												<span className="text-sm font-semibold text-gray-800">
+													{material.price} {material.currency || "XLM"}
+												</span>
+												<span className="text-xs text-gray-400">{material.currency || "XLM"}</span>
+											</div>
+										</div>
+									</Link>
+								))}
+							</motion.div>
+						)}
+					/>
 
 					{/* Pagination */}
-					<div className="flex items-center justify-between mt-12 text-sm text-gray-600">
-						<button className="border border-gray-300 rounded-md px-3 py-1 hover:bg-gray-100">
-							Previous
-						</button>
-						<div className="flex items-center gap-2">
-							{[1, 2, 3, 4, 5].map((num) => (
-								<button
-									key={num}
-									className={`w-8 h-8 flex items-center justify-center rounded-md ${
-										num === 1
-											? "bg-blue-600 text-white"
-											: "bg-white border border-gray-300 hover:bg-gray-100"
-									}`}
-								>
-									{num}
-								</button>
-							))}
+					{materialsQuery.data?.totalPages > 1 && (
+						<div className="flex items-center justify-between mt-12 text-sm text-gray-600">
+							<button className="border border-gray-300 rounded-md px-3 py-1 hover:bg-gray-100">
+								Previous
+							</button>
+							<div className="flex items-center gap-2">
+								{Array.from({ length: materialsQuery.data.totalPages }, (_, i) => i + 1).map((num) => (
+									<button
+										key={num}
+										className={`w-8 h-8 flex items-center justify-center rounded-md ${
+											num === materialsQuery.data.page
+												? "bg-blue-600 text-white"
+												: "bg-white border border-gray-300 hover:bg-gray-100"
+										}`}
+									>
+										{num}
+									</button>
+								))}
+							</div>
+							<button className="border border-gray-300 rounded-md px-3 py-1 hover:bg-gray-100">
+								Next
+							</button>
 						</div>
-						<button className="border border-gray-300 rounded-md px-3 py-1 hover:bg-gray-100">
-							Next
-						</button>
-					</div>
+					)}
 				</main>
 			</section>
 		</>
