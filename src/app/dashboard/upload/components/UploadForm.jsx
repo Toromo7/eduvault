@@ -4,9 +4,12 @@ import Image from "next/image";
 import { useState } from "react";
 import { FaCloudUploadAlt } from "react-icons/fa";
 import { useAccount } from "wagmi";
+import { useUploadFile, useCreateMaterial } from "@/hooks/api/useMaterials";
 
 export default function UploadForm() {
   const { address } = useAccount();
+  const uploadFileMutation = useUploadFile();
+  const createMaterialMutation = useCreateMaterial();
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -19,7 +22,6 @@ export default function UploadForm() {
   const [thumbFile, setThumbFile] = useState(null);
   const [thumbPreview, setThumbPreview] = useState(null);
 
-  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
 
@@ -54,8 +56,6 @@ export default function UploadForm() {
       return;
     }
 
-    setSubmitting(true);
-
     try {
       const formData = new FormData();
       formData.append("file", docFile);
@@ -67,26 +67,44 @@ export default function UploadForm() {
       formData.append("visibility", visibility);
       formData.append("owner", address);
 
-      const uploadRes = await fetch("/api/upload", {
-        method: "POST",
-        body: formData,
-      });
-      const uploadData = await uploadRes.json();
+      // 1. Upload to Pinata
+      const uploadData = await uploadFileMutation.mutateAsync(formData);
 
-      if (!uploadRes.ok || !uploadData?.metadata) {
-        throw new Error(uploadData?.error || "File upload failed");
+      if (!uploadData?.metadata) {
+        throw new Error("File upload failed");
       }
 
+      // 2. Create database record
+      await createMaterialMutation.mutateAsync({
+        title,
+        description,
+        price,
+        usageRights,
+        visibility,
+        storageKey: uploadData.storageKey,
+        thumbnail: uploadData.image,
+        metadataUrl: uploadData.metadata,
+        creator: address,
+      });
+
       setSuccess(
-        "Document uploaded successfully. Soroban-backed publishing will replace the legacy mint path."
+        "Document uploaded successfully and record created!"
       );
+      // Reset form
+      setTitle("");
+      setDescription("");
+      setPrice("");
+      setDocFile(null);
+      setDocFileName(null);
+      setThumbFile(null);
+      setThumbPreview(null);
     } catch (err) {
       console.error("Upload Error:", err);
       setError(err?.message || "Something went wrong. Please try again.");
-    } finally {
-      setSubmitting(false);
     }
   };
+
+  const submitting = uploadFileMutation.isPending || createMaterialMutation.isPending;
 
   return (
     <form
@@ -95,7 +113,7 @@ export default function UploadForm() {
     >
       <h2 className="text-xl font-bold mb-6">Create a New Study Resource</h2>
       <p className="text-sm text-gray-600 mb-8">
-        Upload lecture notes, projects, or past questions. The active chain layer is moving to Soroban, so this form only handles file and metadata submission today.
+        Upload lecture notes, projects, or past questions. The active chain layer is moving to Soroban, so this form handles file storage and cataloging.
       </p>
 
       <div className="mb-5">
@@ -164,12 +182,11 @@ export default function UploadForm() {
                 </>
               )}
             </p>
-            <button
-              type="button"
+            <div
               className="px-4 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700"
             >
               Choose File
-            </button>
+            </div>
           </label>
         </div>
       </div>
@@ -236,7 +253,7 @@ export default function UploadForm() {
           disabled={submitting}
           className="px-5 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition text-sm font-medium disabled:opacity-60"
         >
-          {submitting ? "Uploading..." : "Submit Upload"}
+          {submitting ? "Processing..." : "Submit Upload"}
         </button>
       </div>
     </form>

@@ -20,6 +20,15 @@ async function getUserFromCookie(request) {
   return verification.payload;
 }
 
+/**
+ * Removes sensitive fields from material documents before public/client exposure.
+ */
+function sanitizeMaterial(doc) {
+  if (!doc) return doc;
+  const { storageKey, fileUrl, metadataUrl, ...safe } = doc;
+  return safe;
+}
+
 export async function POST(request) {
   return withApiHardening(
     request,
@@ -57,7 +66,7 @@ export async function POST(request) {
 
     const result = await db.collection("materials").insertOne(doc);
     auditLog({ event: "material_created", route: "materials", method: "POST", status: 201, actor: user.sub });
-    return NextResponse.json({ id: result.insertedId, ...doc }, { status: 201 });
+    return NextResponse.json({ id: result.insertedId, ...sanitizeMaterial(doc) }, { status: 201 });
   } catch (err) {
     if (err.name === "ValidationError") throw err;
     auditLog({ event: "material_create_failed", route: "materials", method: "POST", status: 500, reason: err.message });
@@ -87,7 +96,8 @@ export async function GET(request) {
       .sort({ createdAt: -1 })
       .toArray();
 
-    return NextResponse.json(items);
+    const normalized = items.map(sanitizeMaterial);
+    return NextResponse.json(normalized);
   } catch (err) {
     if (err.name === "ValidationError") throw err;
     auditLog({ event: "material_list_failed", route: "materials", method: "GET", status: 500, reason: err.message });
