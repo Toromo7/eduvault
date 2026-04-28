@@ -169,9 +169,14 @@ fn sets_asset_allowed() {
 
     assert!(!client.is_asset_allowed(&asset));
 
-    client.set_asset_allowed(&admin, &asset, &true);
+    client.set_asset_allowed(&admin, &asset, &AssetKind::Token, &true);
 
     assert!(client.is_asset_allowed(&asset));
+
+    // Verify get_asset_info returns the stored AssetInfo
+    let info = client.get_asset_info(&asset).unwrap();
+    assert_eq!(info.kind, AssetKind::Token);
+    assert!(info.enabled);
 
     // Check event
     let events = env.events().all();
@@ -186,7 +191,7 @@ fn sets_asset_allowed() {
                 asset.clone(),
             )
                 .into_val(&env),
-            vec![&env, true.into_val(&env)].into_val(&env),
+            vec![&env, AssetKind::Token.into_val(&env), true.into_val(&env)].into_val(&env),
         )
     );
 }
@@ -279,7 +284,7 @@ fn rejects_admin_calls_from_non_admin() {
 
     let (_, client) = install_and_init_contract(&env, &admin, &registry, &treasury, 500);
 
-    let result = client.try_set_asset_allowed(&non_admin, &asset, &true);
+    let result = client.try_set_asset_allowed(&non_admin, &asset, &AssetKind::Token, &true);
     assert_eq!(result, Err(Ok(PurchaseError::NotAuthorized)));
 }
 
@@ -315,8 +320,8 @@ fn successful_purchase_creates_entitlement() {
     // Setup contract
     let (_contract_id, client) = install_and_init_contract(&env, &admin, &registry, &treasury, 500);
 
-    // Enable asset
-    client.set_asset_allowed(&admin, &asset, &true);
+    // Enable asset (USDC-style token)
+    client.set_asset_allowed(&admin, &asset, &AssetKind::Token, &true);
 
     let purchase_id = client.purchase(&buyer, &material_id, &asset, &1_000_000);
     assert_eq!(purchase_id, 0);
@@ -342,7 +347,7 @@ fn rejects_purchase_when_paused() {
     let (contract_id, client) = install_and_init_contract(&env, &admin, &registry, &treasury, 500);
 
     // Enable asset
-    client.set_asset_allowed(&admin, &asset, &true);
+    client.set_asset_allowed(&admin, &asset, &AssetKind::Token, &true);
 
     // Pause the contract
     client.set_platform_config(&admin, &treasury, &500, &true);
@@ -525,11 +530,13 @@ fn asset_can_be_disabled() {
 
     let (_, client) = install_and_init_contract(&env, &admin, &registry, &treasury, 500);
 
-    // Enable then disable
-    client.set_asset_allowed(&admin, &asset, &true);
+    // Enable (as Native/XLM) then disable
+    client.set_asset_allowed(&admin, &asset, &AssetKind::Native, &true);
     assert!(client.is_asset_allowed(&asset));
+    let info = client.get_asset_info(&asset).unwrap();
+    assert_eq!(info.kind, AssetKind::Native);
 
-    client.set_asset_allowed(&admin, &asset, &false);
+    client.set_asset_allowed(&admin, &asset, &AssetKind::Native, &false);
     assert!(!client.is_asset_allowed(&asset));
 }
 
@@ -720,4 +727,39 @@ fn payout_distributed_event_struct_works() {
     assert_eq!(event.purchase_id, 1);
     assert_eq!(event.recipient, recipient);
     assert_eq!(event.amount, 950_000);
+}
+
+#[test]
+fn set_oracle_and_get_asset_info_work() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let admin = Address::generate(&env);
+    let registry = Address::generate(&env);
+    let treasury = Address::generate(&env);
+    let asset = Address::generate(&env);
+    let oracle = Address::generate(&env);
+
+    let (_, client) = install_and_init_contract(&env, &admin, &registry, &treasury, 500);
+
+    // Oracle should be None by default
+    let config = client.get_platform_config().unwrap();
+    assert!(config.oracle.is_none());
+
+    // Set oracle
+    client.set_oracle(&admin, &Some(oracle.clone()));
+    let config = client.get_platform_config().unwrap();
+    assert_eq!(config.oracle, Some(oracle.clone()));
+
+    // Clear oracle
+    client.set_oracle(&admin, &None);
+    let config = client.get_platform_config().unwrap();
+    assert!(config.oracle.is_none());
+
+    // Asset info
+    assert!(client.get_asset_info(&asset).is_none());
+    client.set_asset_allowed(&admin, &asset, &AssetKind::Token, &true);
+    let info = client.get_asset_info(&asset).unwrap();
+    assert_eq!(info.kind, AssetKind::Token);
+    assert!(info.enabled);
 }

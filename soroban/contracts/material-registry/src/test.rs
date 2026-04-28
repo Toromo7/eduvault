@@ -269,6 +269,10 @@ fn updates_sale_terms_and_status_and_supports_quote_lookup() {
     let tracked_asset = next_quotes.get_unchecked(0).asset.clone();
     let next_payout_shares = replacement_payout_shares(&env);
 
+    // Approve the replacement asset before updating sale terms.
+    // The upgrade-admin is the first creator; auth is mocked for the whole test.
+    client.set_asset_allowed(&creator, &tracked_asset, &AssetKind::Token, &true);
+
     client.update_sale_terms(&material_id, &next_quotes, &next_payout_shares);
     client.set_material_status(&material_id, &MaterialStatus::Paused);
 
@@ -281,11 +285,12 @@ fn updates_sale_terms_and_status_and_supports_quote_lookup() {
     assert_eq!(record.payout_shares, next_payout_shares);
     assert_eq!(quote, Some(next_quotes.get_unchecked(0)));
     assert_eq!(missing_quote, None);
-    assert_eq!(env.events().all().len(), 3);
+    // Events: registered + asset_policy_updated + sale_terms_updated + status_updated
+    assert_eq!(env.events().all().len(), 4);
 
     let events = env.events().all();
     assert_eq!(
-        events.get_unchecked(1),
+        events.get_unchecked(2),
         (
             contract_id.clone(),
             (
@@ -305,7 +310,7 @@ fn updates_sale_terms_and_status_and_supports_quote_lookup() {
         )
     );
     assert_eq!(
-        events.get_unchecked(2),
+        events.get_unchecked(3),
         (
             contract_id,
             (
@@ -345,4 +350,164 @@ fn bootstraps_and_transfers_upgrade_admin() {
 
     let denied = client.try_set_upgrade_admin(&creator, &Address::generate(&env));
     assert_eq!(denied, Err(Ok(RegistryError::NotAuthorized)));
+}
+
+// ============== Asset Allowlist Tests ==============
+
+#[test]
+fn set_asset_allowed_stores_info_and_emits_event() {
+    let env = Env::default();
+    let (contract_id, client) = install_contract(&env);
+    env.mock_all_auths();
+
+    let creator = Address::generate(&env);
+    let xlm = Address::generate(&env);
+
+    // Bootstrap: first registration sets upgrade-admin = creator
+    client.register_material(
+        &creator,
+        &metadata_uri(&env),
+        &bytes32(&env, 1),
+        &bytes32(&env, 2),
+        &default_quotes(&env),
+        &default_payout_shares(&env),
+    );
+
+    assert!(!client.is_asset_allowed(&xlm));
+    assert!(client.get_asset_info(&xlm).is_none());
+
+    client.set_asset_allowed(&creator, &xlm, &AssetKind::Native, &true);
+
+    assert!(client.is_asset_allowed(&xlm));
+    let info = client.get_asset_info(&xlm).unwrap();
+    assert_eq!(info.kind, AssetKind::Native);
+    assert!(info.enabled);
+
+    // Check event
+    let events = env.events().all();
+    let last = events.get_unchecked(events.len() - 1);
+    assert_eq!(
+        last,
+        (
+            contract_id,
+            (Symbol::new(&env, "asset"), Symbol::new(&env, "policy_updated"), xlm.clone())
+                .into_val(&env),
+            vec![&env, AssetKind::Native.into_val(&env), true.into_val(&env)].into_val(&env),
+        )
+    );
+}
+
+#[test]
+fn disabling_asset_blocks_quote_registration() {
+    let env = Env::default();
+    let (_contract_id, client) = install_contract(&env);
+    env.mock_all_auths();
+
+    let creator = Address::generate(&env);
+    let usdc = Address::generate(&env);
+
+    // First registration; no admin yet so validation is skipped.
+    client.register_material(
+        &creator,
+        &metadata_uri(&env),
+        &bytes32(&env, 1),
+        &bytes32(&env, 2),
+        &default_quotes(&env),
+        &default_payout_shares(&env),
+    );
+
+    // Allow USDC, then immediately disable it.
+    client.set_asset_allowed(&creator, &usdc, &AssetKind::Token, &true);
+    client.set_asset_allowed(&creator, &usdc, &AssetKind::Token, &false);
+
+    // Attempting to register a second material quoting the disabled asset must fail.
+    let bad_quotes = vec![
+        &env,
+        AssetQuote { asset: usdc, amount: 1_000_000 },
+    ];
+    let result = client.try_register_material(
+        &creator,
+        &metadata_uri(&env),
+        &bytes32(&env, 10),
+        &bytes32(&env, 11),
+        &bad_quotes,
+        &default_payout_shares(&env),
+    );
+    assert_eq!(result, Err(Ok(RegistryError::UnapprovedAsset)));
+}
+
+#[test]
+fn update_sale_terms_rejects_unapproved_asset() {
+    let env = Env::default();
+    let (_contract_id, client) = install_contract(&env);
+    env.mock_all_auths();
+
+    let creator = Address::generate(&env);
+
+    // First registration; no admin yet so validation skipped.
+    let material_id = client.register_material(
+        &creator,
+        &metadata_uri(&env),
+        &bytes32(&env, 1),
+        &bytes32(&env, 2),
+        &default_quotes(&env),
+        &default_payout_shares(&env),
+    );
+
+    // Try to update with an asset that has never been approved.
+    let unapproved = Address::generate(&env);
+    let bad_quotes = vec![&env, AssetQuote { asset: unapproved, amount: 5_000_000 }];
+
+    let result = client.try_update_sale_terms(
+        &material_id,
+        &bad_quotes,
+        &default_payout_shares(&env),
+    );
+    assert_eq!(result, Err(Ok(RegistryError::UnapprovedAsset)));
+}
+
+#[test]
+fn non_admin_cannot_set_asset_allowed() {
+    let env = Env::default();
+    let (_contract_id, client) = install_contract(&env);
+    env.mock_all_auths();
+
+    let creator = Address::generate(&env);
+    let intruder = Address::generate(&env);
+    let asset = Address::generate(&env);
+
+    // Bootstrap admin.
+    client.register_material(
+        &creator,
+        &metadata_uri(&env),
+        &bytes32(&env, 1),
+        &bytes32(&env, 2),
+        &default_quotes(&env),
+        &default_payout_shares(&env),
+    );
+
+    let result = client.try_set_asset_allowed(&intruder, &asset, &AssetKind::Token, &true);
+    assert_eq!(result, Err(Ok(RegistryError::NotAuthorized)));
+}
+
+#[test]
+fn first_registration_skips_asset_validation() {
+    // Before any material has been registered the upgrade-admin key does not
+    // exist, so asset allowlist validation must be bypassed entirely.
+    let env = Env::default();
+    let (_contract_id, client) = install_contract(&env);
+    env.mock_all_auths();
+
+    let creator = Address::generate(&env);
+    // Use completely random, never-approved addresses for the quotes.
+    let result = client.try_register_material(
+        &creator,
+        &metadata_uri(&env),
+        &bytes32(&env, 1),
+        &bytes32(&env, 2),
+        &default_quotes(&env),
+        &default_payout_shares(&env),
+    );
+    // Should succeed even though no assets are pre-approved.
+    assert!(result.is_ok());
 }
