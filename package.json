@@ -39,7 +39,7 @@
     "jsonwebtoken": "^9.0.3",
     "mongodb": "^6.21.0",
     "next": "^16.2.4",
-    "nodemailer": "^7.0.13",
+    "nodemailer": "^8.0.7",
     "pinata": "^2.5.5",
     "react": "^19.2.5",
     "react-easy-crop": "^5.5.3",
@@ -69,6 +69,10 @@
     "rpc-websockets": "^9.3.8",
     "jayson": "^4.3.0",
     "serialize-javascript": "^7.0.5",
-    "tmp": "^0.2.5"
+    "tmp": "^0.2.5",
+    "protobufjs": "^8.0.3",
+    "postcss": "^8.5.12",
+    "picomatch": "^4.0.4",
+    "minimatch": "^10.2.5"
   }
 }
