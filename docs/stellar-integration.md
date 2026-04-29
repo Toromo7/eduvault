@@ -122,17 +122,55 @@ const networkPassphrase = 'Test SDF Network ; September 2015';
 ### B. Calling a Soroban Smart Contract
 
 ```js
-import { Contract, xdr } from '@stellar/stellar-sdk';
+import {
+  Contract,
+  Keypair,
+  Networks,
+  SorobanRpc,
+  TransactionBuilder,
+  BASE_FEE,
+  xdr,
+} from '@stellar/stellar-sdk';
 
+const rpcServer = new SorobanRpc.Server('https://soroban-testnet.stellar.org:443');
+const networkPassphrase = Networks.TESTNET;
 const CONTRACT_ID = 'CC...';
 const contract = new Contract(CONTRACT_ID);
 
-async function checkAccess(userPublicKey) {
-  const tx = contract.call('has_access', xdr.ScVal.scvAddress(userPublicKey));
-  const simulation = await server.simulateTransaction(tx);
-  if (simulation.results) {
-    console.log('Access Status:', simulation.results[0].retval);
+async function checkAccess(callerPublicKey) {
+  // Load the caller's account to get the current sequence number
+  const account = await rpcServer.getAccount(callerPublicKey);
+
+  // Wrap the operation in a fully constructed Transaction — simulateTransaction
+  // requires a Transaction object, not a raw operation returned by contract.call()
+  const tx = new TransactionBuilder(account, {
+    fee: BASE_FEE,
+    networkPassphrase,
+  })
+    .addOperation(
+      contract.call(
+        'has_access',
+        xdr.ScVal.scvAddress(
+          xdr.ScAddress.scAddressTypeAccount(
+            xdr.AccountID.publicKeyTypeEd25519(
+              Keypair.fromPublicKey(callerPublicKey).rawPublicKey()
+            )
+          )
+        )
+      )
+    )
+    .setTimeout(30)
+    .build();
+
+  const simulation = await rpcServer.simulateTransaction(tx);
+
+  if (SorobanRpc.Api.isSimulationError(simulation)) {
+    throw new Error(`Simulation failed: ${simulation.error}`);
   }
+
+  const hasAccess = simulation.result?.retval?.value() ?? false;
+  console.log('Access Status:', hasAccess);
+  return hasAccess;
 }
 ```
 
