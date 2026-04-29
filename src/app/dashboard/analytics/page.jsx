@@ -176,9 +176,9 @@ export default function AnalyticsPage() {
               color="bg-violet-500"
             />
             <StatCard
-              title="Available Balance"
-              value={availableBalance}
-              sub="Confirmed revenue minus completed withdrawals"
+              title="Confirmed Revenue"
+              value={totalRevenue}
+              sub="All-time confirmed revenue"
               icon={Wallet}
               color="bg-emerald-500"
             />
