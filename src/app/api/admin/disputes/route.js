@@ -4,16 +4,58 @@ export const runtime = "nodejs";
 import { NextResponse } from "next/server";
 import { getDb } from "@/lib/mongodb";
 import { verifyDashboardToken } from "@/lib/auth/session";
+import { ObjectId } from "mongodb";
 
+/**
+ * Verifies the request carries a valid dashboard token AND that the
+ * resolved user holds admin privileges.
+ *
+ * Privilege is granted when ANY of the following is true (in order):
+ *   1. The user document in MongoDB has `role === "admin"`.
+ *   2. The user's wallet address appears in the ADMIN_WALLETS env var
+ *      (comma-separated list of addresses, case-insensitive).
+ *
+ * Returns the user document on success, or null on any failure.
+ */
 async function getAdminUser(request) {
   const cookieHeader = request.headers.get("cookie") || "";
   const cookieMatch = cookieHeader.match(/auth_token=([^;]+)/);
   const token = cookieMatch ? decodeURIComponent(cookieMatch[1]) : null;
   if (!token) return null;
+
   const verification = await verifyDashboardToken(token, process.env.JWT_SECRET);
   if (!verification.valid) return null;
-  // Extend this check once a role field is added to the users collection
-  return verification.payload;
+
+  const { sub, walletAddress } = verification.payload;
+
+  // Fetch the live user document so role changes take effect without
+  // requiring a new token to be issued.
+  let dbUser = null;
+  try {
+    const db = await getDb();
+    dbUser = await db.collection("users").findOne({ _id: new ObjectId(sub) });
+  } catch {
+    return null;
+  }
+
+  if (!dbUser) return null;
+
+  // Check 1: explicit role field on the user document
+  if (dbUser.role === "admin") return dbUser;
+
+  // Check 2: wallet address allowlist from environment variable
+  const allowlist = (process.env.ADMIN_WALLETS ?? "")
+    .split(",")
+    .map((w) => w.trim().toLowerCase())
+    .filter(Boolean);
+
+  const userWallet = (dbUser.walletAddress ?? walletAddress ?? "").toLowerCase();
+  if (allowlist.length > 0 && userWallet && allowlist.includes(userWallet)) {
+    return dbUser;
+  }
+
+  // No admin privilege found
+  return null;
 }
 
 export async function GET(request) {
@@ -57,7 +99,7 @@ export async function PATCH(request) {
         $set: {
           status,
           resolution: resolution ?? null,
-          resolvedBy: user.sub,
+          resolvedBy: user._id,
           resolvedAt: new Date(),
           updatedAt: new Date(),
         },

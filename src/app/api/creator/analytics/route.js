@@ -151,7 +151,9 @@ export async function GET(request) {
     }));
 
     // ── 6. Recent 5 Withdrawals ───────────────────────────────────────────────
-    // Gracefully handle the case where the payouts collection doesn't exist yet
+    // MongoDB returns an empty cursor for non-existent collections without throwing,
+    // so no try-catch is needed for that case. Any error here is a real failure
+    // (connection issue, type mismatch, etc.) and must be logged.
     let withdrawals = [];
     try {
       const payouts = db.collection("payouts");
@@ -170,12 +172,29 @@ export async function GET(request) {
         amount: `$${Number(p.amount ?? 0).toFixed(2)}`,
         status: p.status === "completed" ? "Success" : "Pending",
       }));
-    } catch {
-      // payouts collection not yet created — return empty array
+    } catch (payoutsError) {
+      console.error("[analytics] Failed to fetch withdrawals:", payoutsError);
+      // withdrawals stays [] so the rest of the response is still usable,
+      // but the error is now visible in logs rather than silently swallowed.
     }
+
+    // -- 7. Available Balance (revenue minus completed payouts) ----------------
+    // Sum only payouts with status "completed" � pending payouts have not yet
+    // left the creator's balance.
+    const completedPayoutsAgg = await db
+      .collection("payouts")
+      .aggregate([
+        { $match: { creatorAddress, status: "completed" } },
+        { $group: { _id: null, total: { $sum: { $toDouble: "$amount" } } } },
+      ])
+      .toArray();
+
+    const completedPayouts = completedPayoutsAgg[0]?.total ?? 0;
+    const availableBalance = Math.max(0, totalRevenue - completedPayouts);
 
     return NextResponse.json({
       totalRevenue,
+      availableBalance,
       monthlySales,
       chartData,
       topMaterials,

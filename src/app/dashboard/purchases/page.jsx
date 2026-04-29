@@ -4,6 +4,13 @@ import { useEffect, useState, useCallback } from "react";
 import { FaDownload, FaExternalLinkAlt, FaShoppingBag, FaSpinner, FaCheckCircle } from "react-icons/fa";
 import { MdOutlineSchool } from "react-icons/md";
 
+// Derive the correct stellar.expert network segment from the active network config.
+// stellar.expert uses "public" for mainnet and "testnet" for the test network.
+const STELLAR_EXPLORER_BASE =
+  process.env.NEXT_PUBLIC_STELLAR_NETWORK === "PUBLIC"
+    ? "https://stellar.expert/explorer/public"
+    : "https://stellar.expert/explorer/testnet";
+
 function formatDate(dateStr) {
   if (!dateStr) return "—";
   return new Date(dateStr).toLocaleDateString(undefined, {
@@ -128,7 +135,7 @@ function PurchasedMaterialCard({ item }) {
             <span className="font-mono">{truncateHash(item.transactionHash)}</span>
             {item.transactionHash && (
               <a
-                href={`https://stellar.expert/explorer/testnet/tx/${item.transactionHash}`}
+                href={`${STELLAR_EXPLORER_BASE}/tx/${item.transactionHash}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="ml-1 text-blue-400 hover:text-blue-600"
@@ -144,18 +151,24 @@ function PurchasedMaterialCard({ item }) {
           )}
 
           {/* Actions */}
-          <button
-            onClick={handleDownload}
-            disabled={downloading}
-            className="w-full flex items-center justify-center gap-2 py-2 px-4 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white text-sm font-medium rounded-lg transition-colors"
-          >
-            {downloading ? (
-              <FaSpinner className="animate-spin" size={14} />
-            ) : (
-              <FaDownload size={14} />
-            )}
-            {downloading ? "Preparing…" : "Download / View"}
-          </button>
+          {material ? (
+            <button
+              onClick={handleDownload}
+              disabled={downloading}
+              className="w-full flex items-center justify-center gap-2 py-2 px-4 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white text-sm font-medium rounded-lg transition-colors"
+            >
+              {downloading ? (
+                <FaSpinner className="animate-spin" size={14} />
+              ) : (
+                <FaDownload size={14} />
+              )}
+              {downloading ? "Preparing…" : "Download / View"}
+            </button>
+          ) : (
+            <div className="w-full flex items-center justify-center gap-2 py-2 px-4 bg-gray-100 text-gray-400 text-sm font-medium rounded-lg cursor-not-allowed select-none">
+              Material unavailable
+            </div>
+          )}
         </div>
       </div>
     </div>
