@@ -57,7 +57,7 @@ export async function GET(request) {
         {
           $group: {
             _id: null,
-            total: { $sum: { $toDouble: "$amount" } },
+            total: { $sum: { $convert: { input: "$amount", to: "double", onError: 0, onNull: 0 } } },
           },
         },
       ])
@@ -103,7 +103,7 @@ export async function GET(request) {
             _id: {
               $dateToString: { format: "%Y-%m-%d", date: "$purchasedAt" },
             },
-            value: { $sum: { $toDouble: "$amount" } },
+            value: { $sum: { $convert: { input: "$amount", to: "double", onError: 0, onNull: 0 } } },
           },
         },
         { $sort: { _id: 1 } },
@@ -136,7 +136,7 @@ export async function GET(request) {
           $group: {
             _id: "$materialId",
             sales: { $sum: 1 },
-            revenue: { $sum: { $toDouble: "$amount" } },
+            revenue: { $sum: { $convert: { input: "$amount", to: "double", onError: 0, onNull: 0 } } },
           },
         },
         { $sort: { sales: -1 } },
@@ -185,7 +185,7 @@ export async function GET(request) {
       .collection("payouts")
       .aggregate([
         { $match: { creatorAddress, status: "completed" } },
-        { $group: { _id: null, total: { $sum: { $toDouble: "$amount" } } } },
+        { $group: { _id: null, total: { $sum: { $convert: { input: "$amount", to: "double", onError: 0, onNull: 0 } } } } },
       ])
       .toArray();
 

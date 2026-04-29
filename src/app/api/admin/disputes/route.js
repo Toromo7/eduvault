@@ -92,9 +92,18 @@ export async function PATCH(request) {
       return NextResponse.json({ error: "disputeId and status are required" }, { status: 400 });
     }
 
+    // Validate and convert disputeId to ObjectId — the raw string will never
+    // match MongoDB's ObjectId _id field, causing every update to return 404.
+    let disputeObjectId;
+    try {
+      disputeObjectId = new ObjectId(disputeId);
+    } catch {
+      return NextResponse.json({ error: "Invalid disputeId format" }, { status: 400 });
+    }
+
     const db = await getDb();
     const result = await db.collection("disputes").updateOne(
-      { _id: disputeId },
+      { _id: disputeObjectId },
       {
         $set: {
           status,

@@ -199,8 +199,13 @@ console.log('File pinned at:', cid);
 
 Use this pattern in a Next.js API route to simulate or submit a Soroban contract call from server-side code. The backend signs with a funded keypair stored in environment variables — no browser wallet is involved.
 
+> **Note:** The example below is an illustrative pattern for Soroban-backed access checks. The current
+> `/api/entitlements` route is DB-backed: it accepts `?buyerAddress=&materialId=` and returns
+> `{ hasAccess: boolean, entitlement? }` sourced from the `purchases` collection. Use the pattern
+> below when migrating or extending entitlement checks to query a Soroban contract directly.
+
 ```js
-// src/app/api/entitlements/route.js
+// src/app/api/soroban-access-check/route.js  (illustrative — see /api/entitlements for the live DB-backed route)
 import {
   Keypair,
   Networks,
@@ -220,10 +225,11 @@ const serverKeypair = Keypair.fromSecret(process.env.STELLAR_SERVER_SECRET);
 
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
-  const userPublicKey = searchParams.get('user');
+  const buyerAddress = searchParams.get('buyerAddress');
+  const materialId = searchParams.get('materialId');
 
-  if (!userPublicKey) {
-    return Response.json({ error: 'Missing user public key' }, { status: 400 });
+  if (!buyerAddress || !materialId) {
+    return Response.json({ error: 'Missing buyerAddress or materialId' }, { status: 400 });
   }
 
   try {
@@ -244,10 +250,11 @@ export async function GET(request) {
           xdr.ScVal.scvAddress(
             xdr.ScAddress.scAddressTypeAccount(
               xdr.AccountID.publicKeyTypeEd25519(
-                Keypair.fromPublicKey(userPublicKey).rawPublicKey()
+                Keypair.fromPublicKey(buyerAddress).rawPublicKey()
               )
             )
-          )
+          ),
+          xdr.ScVal.scvString(materialId)
         )
       )
       .setTimeout(30)
@@ -261,7 +268,8 @@ export async function GET(request) {
     }
 
     const hasAccess = simulation.result?.retval?.value() ?? false;
-    return Response.json({ user: userPublicKey, hasAccess });
+    // Return the same shape as the DB-backed /api/entitlements for drop-in compatibility
+    return Response.json({ hasAccess, buyerAddress, materialId });
   } catch (err) {
     console.error('Soroban invocation failed:', err);
     return Response.json({ error: 'Contract call failed' }, { status: 500 });
