@@ -128,7 +128,7 @@ function PurchasedMaterialCard({ item }) {
             <span className="font-mono">{truncateHash(item.transactionHash)}</span>
             {item.transactionHash && (
               <a
-                href={`https://stellar.expert/explorer/testnet/tx/${item.transactionHash}`}
+                href={`https://stellar.expert/explorer/${process.env.NEXT_PUBLIC_STELLAR_NETWORK || "testnet"}/tx/${item.transactionHash}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="ml-1 text-blue-400 hover:text-blue-600"

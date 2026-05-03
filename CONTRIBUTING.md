@@ -28,6 +28,61 @@ docker compose up -d mongodb
 npm run dev
 ```
 
+## Stellar / Soroban Setup
+
+EduVault's settlement and entitlement layer runs on Stellar. If you are working on contracts, the indexer, or wallet integration, you need the following additional tools.
+
+### Install Rust and Soroban CLI
+
+```bash
+# Install Rust
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+
+# Add the WASM target
+rustup target add wasm32-unknown-unknown
+
+# Install Soroban CLI
+cargo install --locked soroban-cli
+```
+
+### Configure the CLI for testnet
+
+```bash
+soroban network add testnet \
+  --rpc-url https://soroban-testnet.stellar.org \
+  --network-passphrase "Test SDF Network ; September 2015"
+```
+
+### Generate and fund a testnet identity
+
+```bash
+soroban keys generate --network testnet dev
+curl "https://friendbot.stellar.org?addr=$(soroban keys address dev)"
+```
+
+### Build and test contracts
+
+```bash
+cd soroban
+cargo test
+cargo build --target wasm32-unknown-unknown --release
+```
+
+### Environment variables for Stellar
+
+Add these to your `.env.local` when working on Stellar features:
+
+```env
+NEXT_PUBLIC_STELLAR_NETWORK=testnet
+NEXT_PUBLIC_STELLAR_RPC_URL=https://soroban-testnet.stellar.org
+NEXT_PUBLIC_HORIZON_URL=https://horizon-testnet.stellar.org
+NEXT_PUBLIC_MATERIAL_REGISTRY_CONTRACT_ID=<deployed contract ID>
+NEXT_PUBLIC_PURCHASE_MANAGER_CONTRACT_ID=<deployed contract ID>
+NEXT_PUBLIC_SOROBAN_CONTRACT_ID=<PurchaseManager contract ID>
+```
+
+See [docs/stellar-integration.md](docs/stellar-integration.md) for the full setup walkthrough, architecture diagram, and frontend/backend integration code examples.
+
 ## Branching
 
 - Use a short descriptive branch name such as `docs/stellar-submission` or `feat/entitlement-checks`.
