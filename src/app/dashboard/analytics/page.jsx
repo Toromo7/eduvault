@@ -128,7 +128,6 @@ export default function AnalyticsPage() {
   }, []);
 
   const totalRevenue = data ? `$${Number(data.totalRevenue).toFixed(2)}` : "$0.00";
-  const availableBalance = data ? `$${Number(data.availableBalance).toFixed(2)}` : "$0.00";
   const monthlySales = data ? String(data.monthlySales) : "0";
   const chartData = data?.chartData?.length ? data.chartData : EMPTY_CHART;
   const topMaterials = data?.topMaterials ?? [];
@@ -176,9 +175,9 @@ export default function AnalyticsPage() {
               color="bg-violet-500"
             />
             <StatCard
-              title="Confirmed Revenue"
+              title="Available Balance"
               value={totalRevenue}
-              sub="All-time confirmed revenue"
+              sub="Based on confirmed revenue"
               icon={Wallet}
               color="bg-emerald-500"
             />

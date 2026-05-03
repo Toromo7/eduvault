@@ -54,18 +54,9 @@ export async function POST(request) {
         const dbUser = await db.collection("users").findOne({ _id: new ObjectId(user.sub) });
         userAddress = dbUser?.walletAddress || dbUser?.walletAddressLower || null;
       } catch (e) {
+        // best-effort; keep null if lookup fails
         console.warn("User lookup failed while creating material:", e?.message || e);
       }
-    }
-
-    // Reject early — persisting a material without an owner breaks ownership
-    // checks and downstream access control (entitlements, downloads, disputes).
-    if (!userAddress) {
-      auditLog({ event: "material_create_failed", route: "materials", method: "POST", status: 400, reason: "uploader_address_unresolvable", actor: user.sub });
-      return NextResponse.json(
-        { error: "Could not resolve uploader wallet address. Ensure your profile has a wallet address set." },
-        { status: 400 }
-      );
     }
 
     const doc = {

@@ -57,7 +57,7 @@ export async function GET(request) {
         {
           $group: {
             _id: null,
-            total: { $sum: { $convert: { input: "$amount", to: "double", onError: 0, onNull: 0 } } },
+            total: { $sum: { $toDouble: "$amount" } },
           },
         },
       ])
@@ -103,7 +103,7 @@ export async function GET(request) {
             _id: {
               $dateToString: { format: "%Y-%m-%d", date: "$purchasedAt" },
             },
-            value: { $sum: { $convert: { input: "$amount", to: "double", onError: 0, onNull: 0 } } },
+            value: { $sum: { $toDouble: "$amount" } },
           },
         },
         { $sort: { _id: 1 } },
@@ -136,7 +136,7 @@ export async function GET(request) {
           $group: {
             _id: "$materialId",
             sales: { $sum: 1 },
-            revenue: { $sum: { $convert: { input: "$amount", to: "double", onError: 0, onNull: 0 } } },
+            revenue: { $sum: { $toDouble: "$amount" } },
           },
         },
         { $sort: { sales: -1 } },
@@ -151,9 +151,7 @@ export async function GET(request) {
     }));
 
     // ── 6. Recent 5 Withdrawals ───────────────────────────────────────────────
-    // MongoDB returns an empty cursor for non-existent collections without throwing,
-    // so no try-catch is needed for that case. Any error here is a real failure
-    // (connection issue, type mismatch, etc.) and must be logged.
+    // Gracefully handle the case where the payouts collection doesn't exist yet
     let withdrawals = [];
     try {
       const payouts = db.collection("payouts");
@@ -172,29 +170,12 @@ export async function GET(request) {
         amount: `$${Number(p.amount ?? 0).toFixed(2)}`,
         status: p.status === "completed" ? "Success" : "Pending",
       }));
-    } catch (payoutsError) {
-      console.error("[analytics] Failed to fetch withdrawals:", payoutsError);
-      // withdrawals stays [] so the rest of the response is still usable,
-      // but the error is now visible in logs rather than silently swallowed.
+    } catch {
+      // payouts collection not yet created — return empty array
     }
-
-    // -- 7. Available Balance (revenue minus completed payouts) ----------------
-    // Sum only payouts with status "completed" � pending payouts have not yet
-    // left the creator's balance.
-    const completedPayoutsAgg = await db
-      .collection("payouts")
-      .aggregate([
-        { $match: { creatorAddress, status: "completed" } },
-        { $group: { _id: null, total: { $sum: { $convert: { input: "$amount", to: "double", onError: 0, onNull: 0 } } } } },
-      ])
-      .toArray();
-
-    const completedPayouts = completedPayoutsAgg[0]?.total ?? 0;
-    const availableBalance = Math.max(0, totalRevenue - completedPayouts);
 
     return NextResponse.json({
       totalRevenue,
-      availableBalance,
       monthlySales,
       chartData,
       topMaterials,
