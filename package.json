@@ -73,6 +73,10 @@
     "protobufjs": "^8.0.3",
     "postcss": "^8.5.12",
     "picomatch": "^4.0.4",
-    "minimatch": "^10.2.5"
+    "minimatch": "^10.2.5",
+    "flatted": "^3.4.2",
+    "axios": "^1.8.2",
+    "bn.js": "^5.2.3",
+    "cookie": "^0.7.0"
   }
 }

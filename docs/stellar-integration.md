@@ -199,13 +199,10 @@ console.log('File pinned at:', cid);
 
 Use this pattern in a Next.js API route to simulate or submit a Soroban contract call from server-side code. The backend signs with a funded keypair stored in environment variables — no browser wallet is involved.
 
-> **Note:** The example below is an illustrative pattern for Soroban-backed access checks. The current
-> `/api/entitlements` route is DB-backed: it accepts `?buyerAddress=&materialId=` and returns
-> `{ hasAccess: boolean, entitlement? }` sourced from the `purchases` collection. Use the pattern
-> below when migrating or extending entitlement checks to query a Soroban contract directly.
+Note: this is a reference Soroban pattern. The current production `/api/entitlements` route in this repository is database-backed and uses a different request/response contract.
 
 ```js
-// src/app/api/soroban-access-check/route.js  (illustrative — see /api/entitlements for the live DB-backed route)
+// Example only: src/app/api/entitlements-soroban-example/route.js
 import {
   Keypair,
   Networks,
