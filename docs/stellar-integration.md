@@ -134,10 +134,32 @@ import {
 
 const rpcServer = new SorobanRpc.Server('https://soroban-testnet.stellar.org:443');
 const networkPassphrase = Networks.TESTNET;
-const CONTRACT_ID = 'CC...';
+const CONTRACT_ID = process.env.NEXT_PUBLIC_PURCHASE_MANAGER_CONTRACT_ID;
 const contract = new Contract(CONTRACT_ID);
 
-async function checkAccess(callerPublicKey) {
+/**
+ * Check whether callerPublicKey holds an entitlement for materialId.
+ *
+ * Contract: PurchaseManager.has_entitlement(material_id: bytes32, buyer: Address) -> bool
+ * Argument order: (materialIdScVal, addressScVal)
+ * materialId is encoded as a 32-byte fixed-length byte array (bytes32).
+ */
+async function checkEntitlement(materialId, callerPublicKey) {
+  // Encode materialId as bytes32 — pad or slice to exactly 32 bytes
+  const materialIdBytes = Buffer.alloc(32);
+  const raw = Buffer.from(materialId.replace(/^0x/, ''), 'hex');
+  raw.copy(materialIdBytes, 32 - raw.length); // right-align
+
+  const materialIdScVal = xdr.ScVal.scvBytes(materialIdBytes);
+
+  const addressScVal = xdr.ScVal.scvAddress(
+    xdr.ScAddress.scAddressTypeAccount(
+      xdr.AccountID.publicKeyTypeEd25519(
+        Keypair.fromPublicKey(callerPublicKey).rawPublicKey()
+      )
+    )
+  );
+
   // Load the caller's account to get the current sequence number
   const account = await rpcServer.getAccount(callerPublicKey);
 
@@ -148,16 +170,8 @@ async function checkAccess(callerPublicKey) {
     networkPassphrase,
   })
     .addOperation(
-      contract.call(
-        'has_access',
-        xdr.ScVal.scvAddress(
-          xdr.ScAddress.scAddressTypeAccount(
-            xdr.AccountID.publicKeyTypeEd25519(
-              Keypair.fromPublicKey(callerPublicKey).rawPublicKey()
-            )
-          )
-        )
-      )
+      // Method: has_entitlement  |  Args: (materialIdScVal, addressScVal)
+      contract.call('has_entitlement', materialIdScVal, addressScVal)
     )
     .setTimeout(30)
     .build();
@@ -168,9 +182,9 @@ async function checkAccess(callerPublicKey) {
     throw new Error(`Simulation failed: ${simulation.error}`);
   }
 
-  const hasAccess = simulation.result?.retval?.value() ?? false;
-  console.log('Access Status:', hasAccess);
-  return hasAccess;
+  const hasEntitlement = simulation.result?.retval?.value() ?? false;
+  console.log('Entitlement status:', hasEntitlement);
+  return hasEntitlement;
 }
 ```
 
@@ -233,26 +247,33 @@ export async function GET(request) {
     const server = new SorobanRpc.Server(RPC_URL);
     const contract = new Contract(CONTRACT_ID);
 
+    // Encode materialId as bytes32 (right-aligned, 32 bytes)
+    // The PurchaseManager contract expects material_id as a fixed bytes32 value.
+    const materialIdBytes = Buffer.alloc(32);
+    const raw = Buffer.from(materialId.replace(/^0x/, ''), 'hex');
+    raw.copy(materialIdBytes, 32 - raw.length);
+    const materialIdScVal = xdr.ScVal.scvBytes(materialIdBytes);
+
+    // Encode buyer address as an ScVal Address
+    const addressScVal = xdr.ScVal.scvAddress(
+      xdr.ScAddress.scAddressTypeAccount(
+        xdr.AccountID.publicKeyTypeEd25519(
+          Keypair.fromPublicKey(buyerAddress).rawPublicKey()
+        )
+      )
+    );
+
     // Load the server account to get the current sequence number
     const account = await server.getAccount(serverKeypair.publicKey());
 
     // Build the transaction
+    // Method: has_entitlement  |  Args: (materialIdScVal, addressScVal)
     const tx = new TransactionBuilder(account, {
       fee: BASE_FEE,
       networkPassphrase: NETWORK_PASSPHRASE,
     })
       .addOperation(
-        contract.call(
-          'has_access',
-          xdr.ScVal.scvAddress(
-            xdr.ScAddress.scAddressTypeAccount(
-              xdr.AccountID.publicKeyTypeEd25519(
-                Keypair.fromPublicKey(buyerAddress).rawPublicKey()
-              )
-            )
-          ),
-          xdr.ScVal.scvString(materialId)
-        )
+        contract.call('has_entitlement', materialIdScVal, addressScVal)
       )
       .setTimeout(30)
       .build();
